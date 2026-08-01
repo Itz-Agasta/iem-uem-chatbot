@@ -9,6 +9,15 @@
   gap: 14px;
 }
 
+/* Camera feed for local face detection -- never shown, never leaves the browser */
+.presence-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Floating action button */
 .chat-fab {
   width: 66px;
@@ -31,21 +40,6 @@
 
 .chat-fab.open {
   background: #3a3a38;
-}
-
-/* Attract / greeting bubble */
-.attract-bubble {
-  background: var(--surface);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  padding: 14px 18px;
-  border-radius: 18px 18px 4px 18px;
-  font-size: 15px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  max-width: 260px;
-  text-align: left;
-  animation: pop-in 0.35s ease;
 }
 
 @keyframes pop-in {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { defaultFallback, mockQA } from "../data/mockData";
+import { usePresenceDetection } from "../hooks/usePresenceDetection";
 import "./ChatWidget.css";
 
 interface Message {
@@ -32,12 +33,17 @@ async function askBackend(question: string): Promise<string> {
 // ---------------------------------------------------------------------------
 
 const GREETING = "Hii, how may I help you? 👋";
-const IDLE_TRIGGER_MS = 3000; // stand-in for the 2-3s "stare" trigger (real version: face-api.js)
+
+// How long a face must be continuously present before the chat auto-opens
+const OPEN_HOLD_MS = 3000;
+// How long the person must be continuously gone before the chat auto-collapses
+// (kept short so it feels responsive, but not so short that looking down at
+// the keyboard while typing collapses the chat)
+const CLOSE_GRACE_MS = 2000;
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showAttractBubble, setShowAttractBubble] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { id: nextId(), role: "bot", text: GREETING },
   ]);
@@ -45,14 +51,50 @@ export default function ChatWidget() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Simulates the "stare at screen for 2-3s -> auto greeting" behavior.
-  // In production, swap this timer for a face-api.js / MediaPipe presence
-  // signal that fires the same setShowAttractBubble(true) call.
+  const isOpenRef = useRef(isOpen);
   useEffect(() => {
-    if (isOpen) return;
-    const timer = setTimeout(() => setShowAttractBubble(true), IDLE_TRIGGER_MS);
-    return () => clearTimeout(timer);
+    isOpenRef.current = isOpen;
   }, [isOpen]);
+
+  const openTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const scheduleOpen = () => {
+    if (openTimerRef.current === null) {
+      openTimerRef.current = window.setTimeout(() => {
+        setIsOpen(true);
+        openTimerRef.current = null;
+      }, OPEN_HOLD_MS);
+    }
+  };
+
+  // Real camera-based presence detection. The camera is acquired once and
+  // runs continuously for the page's lifetime (see usePresenceDetection) --
+  // this callback just decides what to do with each presence change:
+  //  - present for 3s straight while closed  -> open the chat
+  //  - absent for 2s straight while open      -> collapse the chat
+  const { videoRef } = usePresenceDetection({
+    onPresenceChange: (present) => {
+      if (present) {
+        if (closeTimerRef.current) {
+          window.clearTimeout(closeTimerRef.current);
+          closeTimerRef.current = null;
+        }
+        if (!isOpenRef.current) scheduleOpen();
+      } else {
+        if (openTimerRef.current) {
+          window.clearTimeout(openTimerRef.current);
+          openTimerRef.current = null;
+        }
+        if (isOpenRef.current && closeTimerRef.current === null) {
+          closeTimerRef.current = window.setTimeout(() => {
+            closeChat();
+            closeTimerRef.current = null;
+          }, CLOSE_GRACE_MS);
+        }
+      }
+    },
+  });
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -60,7 +102,6 @@ export default function ChatWidget() {
 
   const openChat = () => {
     setIsOpen(true);
-    setShowAttractBubble(false);
   };
 
   const closeChat = () => {
@@ -84,11 +125,8 @@ export default function ChatWidget() {
 
   return (
     <div className="chat-widget-root">
-      {!isOpen && showAttractBubble && (
-        <button className="attract-bubble" onClick={openChat}>
-          {GREETING}
-        </button>
-      )}
+      {/* Hidden camera feed used only for local face detection -- never displayed, never sent anywhere */}
+      <video ref={videoRef} className="presence-video" muted playsInline />
 
       {isOpen && (
         <div className={`chat-panel ${isFullscreen ? "fullscreen" : ""}`}>
