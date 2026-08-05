@@ -11,7 +11,7 @@ export default function Ticker({ items, position }: TickerProps) {
 
   return (
     <div className={`ticker ticker-${position}`}>
-      <div className="ticker-label">{position === "top" ? "IEM · UEM" : "CAMPUS UPDATES"}</div>
+      {position === "bottom" && <div className="ticker-label">CAMPUS UPDATES</div>}
       <div className="ticker-track-wrapper">
         <div className={`ticker-track ticker-track-${position}`}>
           {loopItems.map((item, i) => (

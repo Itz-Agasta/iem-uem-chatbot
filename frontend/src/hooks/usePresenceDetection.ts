@@ -34,9 +34,9 @@ interface PresenceState {
  *   });
  *   // mount a <video ref={videoRef} /> somewhere invisible/off-screen
  */
-export function usePresenceDetection({ // please detect everyone, not just me 
+export function usePresenceDetection({
   detectionIntervalMs = 350,
-  minConfidence = 0.2,
+  minConfidence = 0.35,
   missesBeforeAbsent = 2,
   onPresenceChange,
 }: PresenceOptions) {

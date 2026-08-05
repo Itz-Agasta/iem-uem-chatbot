@@ -1,7 +1,7 @@
 .chat-widget-root {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  bottom: clamp(16px, 3vh, 28px);
+  right: clamp(16px, 3vw, 28px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -20,12 +20,12 @@
 
 /* Floating action button */
 .chat-fab {
-  width: 66px;
-  height: 66px;
+  width: clamp(56px, 6.5vh, 72px);
+  height: clamp(56px, 6.5vh, 72px);
   border-radius: 50%;
   background: var(--accent);
   color: white;
-  font-size: 26px;
+  font-size: clamp(22px, 2.6vh, 28px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,8 +55,8 @@
 
 /* Chat panel */
 .chat-panel {
-  width: 380px;
-  height: 560px;
+  width: min(380px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - 140px));
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
@@ -68,6 +68,13 @@
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
     height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
     border-radius 0.28s ease;
+}
+
+@media (orientation: portrait) {
+  .chat-panel {
+    width: min(420px, calc(100vw - 24px));
+    height: min(65vh, 640px);
+  }
 }
 
 .chat-panel.fullscreen {
@@ -178,7 +185,7 @@
 .chat-bubble {
   max-width: 82%;
   padding: 12px 15px;
-  font-size: 14.5px;
+  font-size: clamp(14px, 1.4vh, 16px);
   line-height: 1.5;
   border-radius: var(--radius);
 }
@@ -273,4 +280,39 @@
 
 .chat-send:not(:disabled):hover {
   background: var(--accent-dark);
+}
+
+.chat-mic-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chat-mic-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.chat-mic-btn.listening {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(242, 185, 15, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(242, 185, 15, 0);
+  }
 }

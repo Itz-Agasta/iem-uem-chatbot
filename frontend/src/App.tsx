@@ -1,3 +1,4 @@
+import KioskHeader from "./components/KioskHeader";
 import Ticker from "./components/Ticker";
 import EventBanner from "./components/EventBanner";
 import ChatWidget from "./components/ChatWidget";
@@ -7,6 +8,8 @@ import "./App.css";
 export default function App() {
   return (
     <div className="kiosk-shell">
+      <KioskHeader />
+
       <Ticker items={topTickerItems} position="top" />
 
       <EventBanner

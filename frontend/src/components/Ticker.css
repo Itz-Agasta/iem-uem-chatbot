@@ -1,7 +1,7 @@
 .ticker {
   display: flex;
   align-items: center;
-  height: 56px;
+  height: clamp(40px, 5vh, 60px);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -18,11 +18,11 @@
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 clamp(14px, 2vw, 20px);
   background: var(--accent);
   color: white;
   font-weight: 700;
-  font-size: 13px;
+  font-size: clamp(11px, 1.2vw, 13px);
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
@@ -50,16 +50,29 @@
 .ticker-item {
   display: inline-flex;
   align-items: center;
-  font-size: 15px;
+  font-size: clamp(13px, 1.4vw, 15px);
   color: var(--text-primary);
-  padding: 0 28px;
+  padding: 0 clamp(16px, 2vw, 28px);
   font-weight: 500;
 }
 
 .ticker-dot {
-  margin-left: 28px;
+  margin-left: clamp(16px, 2vw, 28px);
   color: var(--accent);
   font-weight: 700;
+}
+
+@media (orientation: portrait) {
+  .ticker {
+    height: clamp(44px, 4.5vh, 64px);
+  }
+  .ticker-label {
+    font-size: clamp(12px, 1.6vh, 14px);
+  }
+  .ticker-item {
+    font-size: clamp(14px, 2vh, 18px);
+    padding: 0 clamp(18px, 2.5vh, 32px);
+  }
 }
 
 @keyframes scroll-left {

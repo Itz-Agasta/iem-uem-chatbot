@@ -1,0 +1,39 @@
+.kiosk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: clamp(64px, 8vh, 104px);
+  padding: 0 clamp(16px, 3vw, 32px);
+  background: var(--navy);
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  height: clamp(38px, 6vh, 68px);
+  width: auto;
+  object-fit: contain;
+}
+
+@media (orientation: portrait) {
+  .kiosk-header {
+    height: clamp(72px, 7vh, 120px);
+    padding: 0 clamp(20px, 4vw, 40px);
+  }
+  .brand-logo {
+    height: clamp(44px, 5.5vh, 76px);
+  }
+}
+
+.brand-logo-left {
+  /* IEM logo ships on a white card -- give it a subtle white backing so it
+     reads cleanly against the navy header regardless of source image bg */
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+.brand-logo-right {
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+}

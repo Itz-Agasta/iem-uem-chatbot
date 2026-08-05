@@ -27,23 +27,23 @@
 
 .event-text {
   position: relative;
-  padding: 48px 56px;
+  padding: clamp(28px, 4vh, 56px) clamp(28px, 5vw, 64px);
   color: white;
   max-width: 900px;
 }
 
 .event-date {
   display: inline-block;
-  font-size: 14px;
+  font-size: clamp(12px, 1.4vw, 15px);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #f3d9c9;
+  color: var(--gold);
   margin-bottom: 10px;
 }
 
 .event-title {
-  font-size: 44px;
+  font-size: clamp(26px, 4vw, 48px);
   font-weight: 700;
   line-height: 1.15;
   margin-bottom: 10px;
@@ -51,7 +51,26 @@
 }
 
 .event-subtitle {
-  font-size: 18px;
+  font-size: clamp(15px, 1.6vw, 19px);
   font-weight: 400;
   color: #eee;
+}
+
+/* Portrait kiosk panels have less width but much more height -- scale
+   headline text off viewport height instead so it stays large and
+   legible rather than shrinking to fit a narrow width. */
+@media (orientation: portrait) {
+  .event-text {
+    max-width: 100%;
+    padding: clamp(32px, 5vh, 64px) clamp(24px, 6vw, 48px);
+  }
+  .event-date {
+    font-size: clamp(14px, 1.8vh, 18px);
+  }
+  .event-title {
+    font-size: clamp(32px, 5.5vh, 64px);
+  }
+  .event-subtitle {
+    font-size: clamp(17px, 2.4vh, 24px);
+  }
 }

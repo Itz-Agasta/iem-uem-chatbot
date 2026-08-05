@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { defaultFallback, mockQA } from "../data/mockData";
 import { usePresenceDetection } from "../hooks/usePresenceDetection";
+import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
+import { useSpeechToText } from "../hooks/useSpeechToText";
 import "./ChatWidget.css";
 
 interface Message {
@@ -49,7 +51,32 @@ export default function ChatWidget() {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { isSpeaking, isSupported: ttsSupported, speak, stop: stopSpeaking } = useSpeechSynthesis();
+
+  const { isListening, isSupported: sttSupported, transcript, startListening, stopListening } = useSpeechToText(
+    (finalText) => {
+      setInput(finalText);
+      sendMessage(finalText);
+    }
+  );
+
+  // Read out every new bot message as it arrives (unless muted). Skips the
+  // very first render so it doesn't speak the initial greeting on mount.
+  const hasMountedRef = useRef(false);
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    const last = messages[messages.length - 1];
+    if (last && last.role === "bot" && !isMuted) {
+      speak(last.text);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const isOpenRef = useRef(isOpen);
   useEffect(() => {
@@ -107,6 +134,8 @@ export default function ChatWidget() {
   const closeChat = () => {
     setIsOpen(false);
     setIsFullscreen(false);
+    stopSpeaking();
+    stopListening();
   };
 
   const sendMessage = async (text: string) => {
@@ -135,10 +164,37 @@ export default function ChatWidget() {
               <div className="chat-avatar">IU</div>
               <div>
                 <div className="chat-title">IEM-UEM Assistant</div>
-                <div className="chat-subtitle">Ask about the college & university</div>
+                <div className="chat-subtitle">
+                  {isSpeaking ? "Speaking..." : "Ask about the college & university"}
+                </div>
               </div>
             </div>
             <div className="chat-header-actions">
+              {ttsSupported && (
+                <button
+                  className="chat-icon-btn"
+                  onClick={() => {
+                    if (!isMuted) stopSpeaking();
+                    setIsMuted((m) => !m);
+                  }}
+                  aria-label={isMuted ? "Unmute voice replies" : "Mute voice replies"}
+                  title={isMuted ? "Unmute voice replies" : "Mute voice replies"}
+                >
+                  {isMuted ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 5 6 9H2v6h4l5 4V5Z" />
+                      <line x1="23" y1="9" x2="17" y2="15" />
+                      <line x1="17" y1="9" x2="23" y2="15" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 5 6 9H2v6h4l5 4V5Z" />
+                      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                      <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+                    </svg>
+                  )}
+                </button>
+              )}
               <button
                 className="chat-icon-btn"
                 onClick={() => setIsFullscreen((f) => !f)}
@@ -189,11 +245,26 @@ export default function ChatWidget() {
           <div className="chat-input-row">
             <input
               className="chat-input"
-              placeholder="Ask a question about IEM-UEM..."
-              value={input}
+              placeholder={isListening ? "Listening..." : "Ask a question about IEM-UEM..."}
+              value={isListening ? transcript : input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+              readOnly={isListening}
             />
+            {sttSupported && (
+              <button
+                className={`chat-mic-btn ${isListening ? "listening" : ""}`}
+                onClick={() => (isListening ? stopListening() : startListening())}
+                aria-label={isListening ? "Stop voice input" : "Ask by voice"}
+                title={isListening ? "Stop voice input" : "Ask by voice"}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                </svg>
+              </button>
+            )}
             <button
               className="chat-send"
               onClick={() => sendMessage(input)}

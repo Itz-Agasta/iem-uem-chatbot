@@ -1,16 +1,29 @@
 :root {
-  --bg: #f7f7f5;
+  --bg: #f4f5f8;
   --surface: #ffffff;
-  --border: #e5e5e2;
-  --text-primary: #1f1f1e;
-  --text-secondary: #6b6b68;
-  --accent: #c15f3c;
-  --accent-soft: #f3e3dc;
-  --accent-dark: #a84f30;
-  --user-bubble: #eef2f0;
+  --border: #e2e5ec;
+  --text-primary: #1a1f2b;
+  --text-secondary: #66707f;
+
+  /* Brand palette, matched to the IEM/UEM website (navy + gold) */
+  --navy: #17255a;
+  --navy-dark: #0f1a42;
+  --navy-soft: #e7eaf3;
+  --gold: #f2b90f;
+  --gold-dark: #d6a400;
+
+  /* Accent = navy (primary buttons/backgrounds -- strong contrast with
+     white text, matches the site's header/nav). Gold is used separately as
+     a secondary highlight (mic pulse, status accents), not as a button fill,
+     since gold-on-white text reads poorly for accessibility. */
+  --accent: var(--navy);
+  --accent-soft: var(--navy-soft);
+  --accent-dark: var(--navy-dark);
+
+  --user-bubble: #eef1f8;
   --bot-bubble: #ffffff;
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.16);
+  --shadow: 0 8px 30px rgba(15, 26, 66, 0.08);
+  --shadow-lg: 0 20px 60px rgba(15, 26, 66, 0.18);
   --radius: 16px;
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
