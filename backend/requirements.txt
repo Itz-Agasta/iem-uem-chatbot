@@ -9,3 +9,9 @@ sentence-transformers
 pypdf
 langgraph
 torch
+
+# API server
+fastapi
+uvicorn[standard]
+python-multipart
+python-jose[cryptography]

@@ -4,26 +4,37 @@ A campus-gate kiosk system for IEM / UEM (Institute of Engineering &
 Management / University of Engineering and Management, Kolkata): scrolling
 accreditation/achievement tickers, today's event banner, and a chat widget
 that answers questions grounded strictly in official governing body / academic
-council documents.
+council documents -- with voice input/output, camera-based presence
+detection, and an admin portal for managing what's shown on screen.
 
 ## Repo layout
 
 ```
 iem-uem-chatbot/
-├── backend/          RAG pipeline (Python) -- retrieval + generation
-│   ├── app/           config, ingestion, RAGPipeline
-│   ├── knowledge_base/ source .md/.pdf/.txt files
-│   ├── run_ingest.py   build/update the index
-│   ├── run_chat.py     terminal Q&A for testing
-│   └── run_calibrate.py tune the off-topic relevance threshold
+├── backend/          RAG pipeline + FastAPI server (Python)
+│   ├── app/
+│   │   ├── config.py         all tunables (model, retrieval, API, auth)
+│   │   ├── ingest.py          document loading/chunking/indexing
+│   │   ├── rag.py             hybrid retriever + LangGraph pipeline
+│   │   ├── api.py             FastAPI app: /ask, /content, admin endpoints
+│   │   ├── auth.py            admin login + JWT
+│   │   └── content_store.py   JSON-backed tickers + event banner storage
+│   ├── knowledge_base/  source .md/.pdf/.txt files
+│   ├── run_ingest.py     build/update the index
+│   ├── run_chat.py        terminal Q&A for testing
+│   ├── run_calibrate.py   tune the off-topic relevance threshold
+│   └── run_api.py          run the FastAPI server
 │
-├── frontend/         Kiosk UI (TypeScript + React + Vite)
+├── frontend/         Kiosk UI + Admin Portal (TypeScript + React + Vite)
 │   └── src/
-│       ├── components/ Ticker, EventBanner, ChatWidget
-│       └── data/        mocked ticker/event/Q&A content
+│       ├── api.ts             backend API client
+│       ├── components/         KioskHeader, Ticker, EventBanner, ChatWidget
+│       ├── hooks/               presence detection, TTS, STT
+│       ├── admin/                admin portal (login, event/ticker editors)
+│       └── data/                 fallback mock content
 │
 └── docs/
-    └── architecture.md  how the pieces fit together, what's next
+    └── architecture.md  how the pieces fit together
 ```
 
 ## Status
@@ -31,12 +42,15 @@ iem-uem-chatbot/
 | Piece | Status |
 |---|---|
 | RAG backend (retrieval, grounding, off-topic refusal) | Working, testable via `backend/run_chat.py` |
-| Kiosk frontend (tickers, event banner, chat widget, fullscreen) | Working, using mocked chat answers |
-| Backend ↔ frontend connection (FastAPI `/ask` endpoint) | Not yet built |
-| Presence detection (auto-greeting on approach) | Stubbed with a timer, real camera-based detection not yet built |
+| FastAPI server (`/ask`, content management, admin auth) | Working |
+| Kiosk frontend (tickers, event banner, chat widget, fullscreen) | Working, connected to the real backend |
+| Voice input/output (speech-to-text, text-to-speech) | Working (browser Web Speech API) |
+| Presence detection (auto-open on approach, auto-collapse on leaving) | Working (face-api.js, client-side only) |
+| Admin portal (event banner, tickers, index refresh) | Working, at `/admin` |
+| Responsive layout (portrait kiosk display + landscape testing) | Working |
 
-See `docs/architecture.md` for what's next and how to wire the two halves
-together.
+See `docs/architecture.md` for how the pieces connect and what's still worth
+hardening before a real deployment (auth defaults, CORS origins, etc).
 
 ## Quick start
 
@@ -45,7 +59,7 @@ together.
 cd backend
 pip install -r requirements.txt
 python run_ingest.py
-python run_chat.py
+python run_api.py
 ```
 
 **Frontend:**
@@ -54,3 +68,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Kiosk display: `http://localhost:5173`
+Admin portal: `http://localhost:5173/admin` (default login `admin` /
+`changeme123` -- **change this before deploying**, see `backend/README.md`)

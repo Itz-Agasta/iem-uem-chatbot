@@ -2,6 +2,7 @@
 Central configuration for the IEM-UEM RAG chatbot.
 Tune everything here rather than hunting through the pipeline code.
 """
+import os
 from pathlib import Path
 
 # --- Paths -------------------------------------------------------------
@@ -14,6 +15,13 @@ CHUNKS_CACHE_PATH = INDEX_DIR / "all_chunks.json"  # full current chunk set (for
 
 KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
 INDEX_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Admin content store & uploads --------------------------------------------------
+DATA_DIR = BASE_DIR / "data"
+CONTENT_STORE_PATH = DATA_DIR / "content.json"      # tickers + event banner content
+UPLOADS_DIR = DATA_DIR / "uploads"                  # event images uploaded via admin portal
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Models --------------------------------------------------------------
 # 24GB VRAM box: start with 14B, move to 32B only if extraction quality still
@@ -79,3 +87,29 @@ CONTEXT:
 # qwen2.5:32b-instruct-q4_K_M  -> ~20GB VRAM, meaningfully better extraction/
 #                                  reasoning if 14B still feels vague, but
 #                                  leaves little headroom on a 24GB card
+
+# --- API server ------------------------------------------------------------------
+API_HOST = "0.0.0.0"
+API_PORT = 8000
+
+# Origins allowed to call the API (the kiosk frontend + admin portal dev server).
+# Add your production frontend URL(s) here once deployed on the college server.
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# --- Admin auth ------------------------------------------------------------------
+# CHANGE THESE before deploying -- override via environment variables in production
+# rather than editing this file, e.g.:
+#   export ADMIN_USERNAME=someone
+#   export ADMIN_PASSWORD='a-real-password'
+#   export JWT_SECRET_KEY='a-long-random-string'
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme123")
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-only-secret-change-in-production")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = 60 * 12  # 12 hours
+
+MAX_UPLOAD_SIZE_MB = 8
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}

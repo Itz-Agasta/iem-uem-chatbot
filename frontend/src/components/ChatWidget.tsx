@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { defaultFallback, mockQA } from "../data/mockData";
 import { usePresenceDetection } from "../hooks/usePresenceDetection";
 import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
 import { useSpeechToText } from "../hooks/useSpeechToText";
+import { askQuestion } from "../api";
 import "./ChatWidget.css";
 
 interface Message {
@@ -14,25 +14,13 @@ interface Message {
 let idCounter = 0;
 const nextId = () => ++idCounter;
 
-// --- Mocked backend call ---------------------------------------------------
-// Replace this with a real call to your FastAPI backend, e.g.:
-//
-// async function askBackend(question: string): Promise<string> {
-//   const res = await fetch("http://<server>:8000/ask", {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify({ question }),
-//   });
-//   const data = await res.json();
-//   return data.answer;
-// }
 async function askBackend(question: string): Promise<string> {
-  await new Promise((r) => setTimeout(r, 900 + Math.random() * 700));
-  const q = question.toLowerCase();
-  const hit = mockQA.find((entry) => entry.match.some((kw) => q.includes(kw)));
-  return hit ? hit.answer : defaultFallback;
+  try {
+    return await askQuestion(question);
+  } catch {
+    return "Sorry, I couldn't reach the assistant right now. Please try again in a moment, or ask a staff member for help.";
+  }
 }
-// ---------------------------------------------------------------------------
 
 const GREETING = "Hii, how may I help you? 👋";
 
