@@ -17,6 +17,28 @@ ollama pull qwen2.5:14b-instruct-q4_K_M
 cp /path/to/*.md knowledge_base/
 ```
 
+## Database setup (Postgres)
+
+Admin accounts (for the admin portal login) are stored in Postgres, not
+hardcoded. Set it up once:
+
+```bash
+# Install Postgres if not already present, then create the DB + user:
+sudo -u postgres psql -c "CREATE USER iem_uem WITH PASSWORD 'a-real-password';"
+sudo -u postgres psql -c "CREATE DATABASE iem_uem_kiosk OWNER iem_uem;"
+
+# Point the app at it:
+export DATABASE_URL="postgresql+psycopg2://iem_uem:a-real-password@localhost:5432/iem_uem_kiosk"
+
+# Create your first admin account (table is created automatically):
+python manage_admin.py create --username admin
+# (you'll be prompted for a password -- safer than passing it on the command line)
+```
+
+`manage_admin.py` also supports `list`, `set-password`, and `delete` -- run
+`python manage_admin.py --help` for details. There are no default/hardcoded
+admin credentials; you must create an account before `/admin` login works.
+
 ## Build the index
 
 ```bash
@@ -55,13 +77,13 @@ Starts on `http://0.0.0.0:8000` by default (see `app/config.py` to change
 host/port). The model loads once at startup -- watch the console for
 "RAG pipeline ready." before hitting `/ask`.
 
-**Before running in production:** set these environment variables (defaults
-are dev-only placeholders, not safe to deploy as-is):
+**Before running in production:** set a real JWT secret (the default is a
+dev-only placeholder, not safe to deploy as-is) and make sure `DATABASE_URL`
+points at your real Postgres instance:
 
 ```bash
-export ADMIN_USERNAME=your_admin_username
-export ADMIN_PASSWORD='a-real-password'
 export JWT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+export DATABASE_URL="postgresql+psycopg2://iem_uem:a-real-password@localhost:5432/iem_uem_kiosk"
 ```
 
 Also update `CORS_ORIGINS` in `app/config.py` to include your deployed
@@ -98,8 +120,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/path/to/iem-uem-chatbot/backend
-Environment="ADMIN_USERNAME=your_admin_username"
-Environment="ADMIN_PASSWORD=your_real_password"
+Environment="DATABASE_URL=postgresql+psycopg2://iem_uem:your_real_password@localhost:5432/iem_uem_kiosk"
 Environment="JWT_SECRET_KEY=your_random_secret"
 ExecStart=/path/to/venv/bin/uvicorn app.api:app --host 0.0.0.0 --port 8000
 Restart=always
@@ -129,16 +150,19 @@ pipeline.refresh_index()
 
 ```
 app/
-  config.py         all tunables: model, chunk size, k, threshold, prompt, API/auth settings
+  config.py         all tunables: model, chunk size, k, threshold, prompt, API/DB settings
   ingest.py         loading, chunking, incremental indexing
   rag.py            hybrid retriever + LangGraph pipeline + RAGPipeline class
   api.py            FastAPI app: /ask, /content, admin content management
-  auth.py           admin login + JWT verification
+  auth.py           admin login (DB-backed, bcrypt) + JWT verification
+  db.py             Postgres engine/session setup
+  models.py         SQLAlchemy models (AdminUser)
   content_store.py  JSON-backed store for tickers + event banner
 run_ingest.py        entrypoint: build/update the index
 run_chat.py           entrypoint: interactive terminal Q&A
 run_calibrate.py      entrypoint: tune RELEVANCE_THRESHOLD
 run_api.py             entrypoint: run the FastAPI server
+manage_admin.py         entrypoint: create/list/delete admin accounts
 knowledge_base/       source .md / .pdf / .txt files
 index_store/          persisted FAISS index + manifest (auto-created, gitignored)
 data/                 content.json + uploaded event images (auto-created, gitignored)
@@ -153,5 +177,8 @@ data/                 content.json + uploaded event images (auto-created, gitign
   truncates context).
 - `RELEVANCE_THRESHOLD` ships with a placeholder -- calibrate it for your
   actual documents before relying on it to reject off-topic questions.
-- Admin auth is a single hardcoded account (env-configured), not a full user
-  system -- appropriate for one kiosk's back office, not a multi-tenant product.
+- Admin accounts live in Postgres with bcrypt-hashed passwords (see
+  `app/models.py`, `manage_admin.py`) -- multiple admins are supported, and
+  there are no default/hardcoded credentials. Deleting an account
+  immediately invalidates any of that admin's outstanding tokens (checked
+  on every request, not just at login).

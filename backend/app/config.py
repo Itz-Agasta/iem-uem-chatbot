@@ -100,16 +100,26 @@ CORS_ORIGINS = [
 ]
 
 # --- Admin auth ------------------------------------------------------------------
-# CHANGE THESE before deploying -- override via environment variables in production
-# rather than editing this file, e.g.:
-#   export ADMIN_USERNAME=someone
-#   export ADMIN_PASSWORD='a-real-password'
-#   export JWT_SECRET_KEY='a-long-random-string'
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme123")
+# Admin accounts are stored in Postgres (see app/db.py, app/models.py) with
+# bcrypt-hashed passwords -- not hardcoded credentials. Create the initial
+# admin account with:
+#   python manage_admin.py create --username admin --password 'a-real-password'
+#
+# CHANGE JWT_SECRET_KEY before deploying -- override via environment variable
+# rather than editing this file:
+#   export JWT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-only-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = 60 * 12  # 12 hours
 
 MAX_UPLOAD_SIZE_MB = 8
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+# --- Database (Postgres) ------------------------------------------------------------
+# Stores admin accounts. Override for your actual Postgres instance via
+# environment variable, e.g.:
+#   export DATABASE_URL="postgresql+psycopg2://iem_uem:a-real-password@localhost:5432/iem_uem_kiosk"
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+psycopg2://iem_uem:iem_uem_password@localhost:5432/iem_uem_kiosk",
+)

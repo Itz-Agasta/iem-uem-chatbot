@@ -70,5 +70,7 @@ npm run dev
 ```
 
 Kiosk display: `http://localhost:5173`
-Admin portal: `http://localhost:5173/admin` (default login `admin` /
-`changeme123` -- **change this before deploying**, see `backend/README.md`)
+Admin portal: `http://localhost:5173/admin` (an unobtrusive gear icon next to
+the UEM logo on the homepage also links here). No default login exists --
+create your first admin account with `python manage_admin.py create
+--username admin` in `backend/` (see `backend/README.md`).

@@ -55,9 +55,10 @@ src/
 
 ## Admin portal
 
-Visit `/admin`, log in with the backend's configured admin credentials (see
-`backend/README.md` -- defaults are `admin` / `changeme123`, **change these
-before deploying**). From there you can:
+Visit `/admin` (or use the gear icon next to the UEM logo on the kiosk
+homepage) and log in with an admin account created via the backend's
+`manage_admin.py` (see `backend/README.md` -- there's no default login,
+you create the first account yourself). From there you can:
 
 - Upload a new event banner image and edit its title/subtitle
 - Add, remove, reorder, and edit items in both scrolling tickers

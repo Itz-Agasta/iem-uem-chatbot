@@ -1,18 +1,21 @@
 """
-Minimal admin auth: one hardcoded admin account (configured via env vars,
-see config.py), issuing a short-lived JWT on login. Protected routes require
-a valid bearer token. This is intentionally simple -- there's exactly one
-admin account, not a full user system -- appropriate for a single kiosk's
-back office, not a multi-tenant product.
+Admin authentication: accounts live in Postgres (see models.AdminUser) with
+bcrypt-hashed passwords, JWT issued on successful login. Multiple admin
+accounts are supported (create more with manage_admin.py) -- this isn't
+limited to a single hardcoded user anymore.
 """
+import bcrypt
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from . import config
+from .db import get_db
+from .models import AdminUser
 
 security = HTTPBearer()
 
@@ -27,10 +30,26 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-def authenticate(username: str, password: str) -> bool:
-    # Plain comparison is fine here: single hardcoded admin credential pair,
-    # not a multi-user password database. Set real values via env vars.
-    return username == config.ADMIN_USERNAME and password == config.ADMIN_PASSWORD
+def hash_password(plain_password: str) -> str:
+    # bcrypt has a 72-byte input limit -- truncate defensively rather than
+    # erroring on unusually long passwords.
+    password_bytes = plain_password.encode("utf-8")[:72]
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    password_bytes = plain_password.encode("utf-8")[:72]
+    try:
+        return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
+    except ValueError:
+        return False
+
+
+def authenticate(db: Session, username: str, password: str) -> AdminUser | None:
+    user = db.query(AdminUser).filter(AdminUser.username == username).first()
+    if not user or not verify_password(password, user.hashed_password):
+        return None
+    return user
 
 
 def create_access_token(username: str) -> str:
@@ -39,15 +58,21 @@ def create_access_token(username: str) -> str:
     return jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
 
 
-def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """FastAPI dependency: protects a route, returns the admin username if the
-    bearer token is valid, otherwise raises 401."""
+def require_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> str:
+    """FastAPI dependency: protects a route. Verifies the JWT signature/expiry
+    AND that the account still exists in the DB (so a deleted admin's old
+    tokens stop working immediately rather than staying valid until expiry).
+    Returns the username if valid, otherwise raises 401."""
     token = credentials.credentials
     try:
         payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
         username = payload.get("sub")
-        if username != config.ADMIN_USERNAME:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        return username
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    if not username or not db.query(AdminUser).filter(AdminUser.username == username).first():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return username

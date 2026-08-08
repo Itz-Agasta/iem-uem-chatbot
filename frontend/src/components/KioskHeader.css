@@ -37,3 +37,29 @@
   border-radius: 8px;
   padding: 4px 10px;
 }
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.5vw, 18px);
+}
+
+/* Discreet -- present but not a big visual distraction on the public
+   kiosk homescreen. Sits just left of the UEM logo. */
+.admin-access-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(32px, 4vh, 42px);
+  height: clamp(32px, 4vh, 42px);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.admin-access-btn:hover,
+.admin-access-btn:focus-visible {
+  color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+}

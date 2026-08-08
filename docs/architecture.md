@@ -55,9 +55,10 @@ re-scans and rebuilds in place, no server restart needed.
 A few things ship with dev-safe-but-not-production-safe defaults, called out
 here so they don't get missed:
 
-- **Admin credentials** — `ADMIN_USERNAME`/`ADMIN_PASSWORD` default to
-  `admin`/`changeme123` in `app/config.py`. Override via environment
-  variables (see `backend/README.md`).
+- **Admin accounts** — stored in Postgres with bcrypt-hashed passwords, no
+  default/hardcoded credentials (see `backend/README.md` for
+  `manage_admin.py`). Make sure `DATABASE_URL` points at your real Postgres
+  instance, not the local dev default.
 - **JWT secret** — defaults to a placeholder string. Generate a real random
   secret and set `JWT_SECRET_KEY` via environment variable.
 - **CORS origins** — `CORS_ORIGINS` in `app/config.py` only allows

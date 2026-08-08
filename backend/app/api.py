@@ -22,8 +22,10 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from . import auth, config, content_store
+from .db import get_db, init_db
 from .rag import RAGPipeline
 
 app = FastAPI(title="IEM-UEM Kiosk API")
@@ -45,8 +47,10 @@ pipeline: Optional[RAGPipeline] = None
 
 
 @app.on_event("startup")
-def load_pipeline() -> None:
+def startup() -> None:
     global pipeline
+    print("Initializing database...")
+    init_db()
     print("Loading RAG pipeline (this can take a while for a 14B model)...")
     pipeline = RAGPipeline()
     print("RAG pipeline ready.")
@@ -89,10 +93,11 @@ def get_content() -> content_store.KioskContent:
 
 # --- Admin auth ------------------------------------------------------------------
 @app.post("/auth/login", response_model=auth.TokenResponse)
-def login(request: auth.LoginRequest) -> auth.TokenResponse:
-    if not auth.authenticate(request.username, request.password):
+def login(request: auth.LoginRequest, db: Session = Depends(get_db)) -> auth.TokenResponse:
+    user = auth.authenticate(db, request.username, request.password)
+    if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
-    token = auth.create_access_token(request.username)
+    token = auth.create_access_token(user.username)
     return auth.TokenResponse(access_token=token)
 
 
