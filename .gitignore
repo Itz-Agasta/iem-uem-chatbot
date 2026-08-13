@@ -5,7 +5,7 @@ backend/index_store/
 backend/data/
 backend/.venv/
 backend/venv/
-backend/knowledge_base/*
+backend/knowledge_base/
 backend/.python-version
 *.pyc
 
