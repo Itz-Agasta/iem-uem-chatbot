@@ -94,45 +94,26 @@ dev).
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/ask` | none | Ask the chatbot a question |
+| POST | `/ask` | none | Ask the chatbot a question -- rate limited (15/min/IP, see `app/config.py`) |
 | GET | `/content` | none | Current tickers + event banner (kiosk polls this) |
-| POST | `/auth/login` | none | Admin login, returns a JWT |
+| POST | `/auth/login` | none | Admin login, returns a JWT -- rate limited (5/min/IP) |
 | PUT | `/admin/content/tickers` | admin | Update ticker text lists |
 | PUT | `/admin/content/event` | admin | Update event title/subtitle |
 | POST | `/admin/content/event/image` | admin | Upload event banner image |
 | POST | `/admin/refresh-index` | admin | Re-scan `knowledge_base/`, rebuild index in place |
 | GET | `/uploads/{filename}` | none | Serves uploaded event images |
+| GET | `/metrics` | none | Prometheus scrape target -- don't expose publicly, see `deploy/` |
 | GET | `/health` | none | Basic liveness check |
 
 Interactive API docs are auto-generated at `http://localhost:8000/docs`
 while the server is running.
 
-### Running persistently (production)
+### Running persistently, reverse proxy, and monitoring
 
-Don't use `python run_api.py` for the real deployment -- run uvicorn under
-systemd so it restarts automatically and logs properly. Example unit file:
-
-```ini
-# /etc/systemd/system/iem-uem-backend.service
-[Unit]
-Description=IEM-UEM Kiosk Backend
-After=network.target
-
-[Service]
-WorkingDirectory=/path/to/iem-uem-chatbot/backend
-Environment="DATABASE_URL=postgresql+psycopg2://iem_uem:your_real_password@localhost:5432/iem_uem_kiosk"
-Environment="JWT_SECRET_KEY=your_random_secret"
-ExecStart=/path/to/venv/bin/uvicorn app.api:app --host 0.0.0.0 --port 8000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now iem-uem-backend
-```
+See **`deploy/README.md`** at the repo root for systemd (keeps the backend
+running across crashes/reboots), nginx (SPA fallback + reverse proxy), and
+a full Prometheus + Grafana + Loki monitoring stack -- all ready to use,
+just needs paths/domains filled in for your actual server.
 
 ## Using RAGPipeline as a library
 
@@ -153,7 +134,7 @@ app/
   config.py         all tunables: model, chunk size, k, threshold, prompt, API/DB settings
   ingest.py         loading, chunking, incremental indexing
   rag.py            hybrid retriever + LangGraph pipeline + RAGPipeline class
-  api.py            FastAPI app: /ask, /content, admin content management
+  api.py            FastAPI app: /ask, /content, admin content management, rate limiting, /metrics
   auth.py           admin login (DB-backed, bcrypt) + JWT verification
   db.py             Postgres engine/session setup
   models.py         SQLAlchemy models (AdminUser)

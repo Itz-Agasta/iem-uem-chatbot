@@ -1,0 +1,48 @@
+# systemd unit for the IEM-UEM kiosk backend (FastAPI + RAG pipeline).
+#
+# Install:
+#   sudo cp deploy/systemd/iem-uem-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now iem-uem-backend
+#
+# Check status / logs:
+#   sudo systemctl status iem-uem-backend
+#   sudo journalctl -u iem-uem-backend -f
+#
+# EDIT THE PATHS AND ENVIRONMENT VALUES BELOW before installing -- the
+# placeholders won't work as-is.
+
+[Unit]
+Description=IEM-UEM Kiosk Backend (FastAPI + RAG)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+# Run as a dedicated non-root user, not root. Create one if it doesn't
+# already exist: sudo useradd -r -s /bin/false iem-uem
+User=iem-uem
+Group=iem-uem
+
+WorkingDirectory=/opt/iem-uem-chatbot/backend
+
+Environment="DATABASE_URL=postgresql+psycopg2://iem_uem:CHANGE_ME@localhost:5432/iem_uem_kiosk"
+Environment="JWT_SECRET_KEY=CHANGE_ME_TO_A_RANDOM_SECRET"
+
+ExecStart=/opt/iem-uem-chatbot/backend/.venv/bin/uvicorn app.api:app --host 0.0.0.0 --port 8000
+
+# Auto-restart if it crashes (e.g. Ollama hiccup, OOM), but don't restart-loop
+# forever if something is fundamentally broken.
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Basic hardening -- doesn't need to touch most of the filesystem
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/iem-uem-chatbot/backend/data /opt/iem-uem-chatbot/backend/index_store /opt/iem-uem-chatbot/backend/knowledge_base
+
+[Install]
+WantedBy=multi-user.target

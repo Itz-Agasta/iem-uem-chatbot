@@ -115,6 +115,12 @@ JWT_EXPIRE_MINUTES = 60 * 12  # 12 hours
 MAX_UPLOAD_SIZE_MB = 8
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
+# --- Rate limiting -----------------------------------------------------------------
+# Format: "<count>/<period>", e.g. "10/minute". See slowapi/limits docs for
+# supported periods (second, minute, hour, day).
+ASK_RATE_LIMIT = "15/minute"     # generous enough for one kiosk being used normally
+LOGIN_RATE_LIMIT = "5/minute"    # tight -- this is brute-force protection
+
 # --- Database (Postgres) ------------------------------------------------------------
 # Stores admin accounts. Override for your actual Postgres instance via
 # environment variable, e.g.:

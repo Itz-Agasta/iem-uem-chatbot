@@ -5,23 +5,28 @@ Run with:
     uvicorn app.api:app --host 0.0.0.0 --port 8000
 
 Endpoints:
-    POST /ask                          public  -- ask the chatbot a question
+    POST /ask                          public  -- ask the chatbot a question (rate limited)
     GET  /content                      public  -- current tickers + event banner
-    POST /auth/login                   public  -- admin login, returns JWT
+    POST /auth/login                   public  -- admin login, returns JWT (rate limited)
     PUT  /admin/content/tickers        admin   -- update ticker text lists
     PUT  /admin/content/event          admin   -- update event title/subtitle
     POST /admin/content/event/image    admin   -- upload event banner image
     GET  /uploads/{filename}           public  -- serves uploaded images
+    GET  /metrics                      public  -- Prometheus metrics (scrape target)
 """
 import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from . import auth, config, content_store
@@ -29,6 +34,15 @@ from .db import get_db, init_db
 from .rag import RAGPipeline
 
 app = FastAPI(title="IEM-UEM Kiosk API")
+
+# --- Rate limiting -----------------------------------------------------------------
+# Protects /ask (expensive LLM calls) and /auth/login (brute-force attempts)
+# from being hammered. Limits are per client IP, in-memory (fine for a
+# single-instance deployment -- would need a shared backend like Redis if
+# this were ever load-balanced across multiple backend processes).
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +54,11 @@ app.add_middleware(
 
 # Serve uploaded event images at /uploads/<filename>
 app.mount("/uploads", StaticFiles(directory=str(config.UPLOADS_DIR)), name="uploads")
+
+# --- Prometheus metrics --------------------------------------------------------------
+# Exposes /metrics with request counts, latencies, in-progress requests, etc.
+# for Prometheus to scrape. See deploy/monitoring/ for the full stack.
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 # Loaded once at startup -- loading the model takes real time, must not
 # happen per-request.
@@ -66,12 +85,13 @@ class AskResponse(BaseModel):
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask(request: AskRequest) -> AskResponse:
+@limiter.limit(config.ASK_RATE_LIMIT)
+def ask(request: Request, body: AskRequest) -> AskResponse:
     if pipeline is None:
         raise HTTPException(status_code=503, detail="Model is still loading, try again shortly.")
-    if not request.question.strip():
+    if not body.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
-    answer = pipeline.ask(request.question.strip())
+    answer = pipeline.ask(body.question.strip())
     return AskResponse(answer=answer)
 
 
@@ -93,8 +113,9 @@ def get_content() -> content_store.KioskContent:
 
 # --- Admin auth ------------------------------------------------------------------
 @app.post("/auth/login", response_model=auth.TokenResponse)
-def login(request: auth.LoginRequest, db: Session = Depends(get_db)) -> auth.TokenResponse:
-    user = auth.authenticate(db, request.username, request.password)
+@limiter.limit(config.LOGIN_RATE_LIMIT)
+def login(request: Request, body: auth.LoginRequest, db: Session = Depends(get_db)) -> auth.TokenResponse:
+    user = auth.authenticate(db, body.username, body.password)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     token = auth.create_access_token(user.username)

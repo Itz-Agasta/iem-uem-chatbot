@@ -44,11 +44,17 @@ re-scans and rebuilds in place, no server restart needed.
 ## Deployment target
 
 - **Backend**: college server, 24GB VRAM, Ollama + FastAPI (uvicorn) running
-  as a persistent systemd service (see `backend/README.md` for the unit file).
+  as a persistent systemd service.
 - **Frontend**: built as static files (`npm run build` → `dist/`) and served
-  from the same server (nginx, or FastAPI's static file serving). The web
-  server needs SPA fallback configured (unknown paths → `index.html`) so
-  `/admin` works when navigated to directly, not just via client-side link.
+  from the same server via nginx, with SPA fallback configured so `/admin`
+  works when navigated to directly, not just via client-side link.
+- **Monitoring**: Prometheus scrapes the backend's `/metrics`, Grafana
+  visualizes it, Loki/Promtail ships backend logs from the systemd journal.
+
+All of the above is ready to use in `deploy/` (systemd unit, nginx config,
+Docker Compose monitoring stack) -- see `deploy/README.md` for the install
+steps. Paths, domains, and secrets still need filling in for your actual
+server.
 
 ## Before deploying for real
 
@@ -65,13 +71,28 @@ here so they don't get missed:
   `localhost:5173` right now. Add the deployed frontend's actual URL.
 - **`VITE_API_BASE_URL`** — frontend defaults to `http://localhost:8000`.
   Set this to the backend's real address for the deployed build.
+- **HTTPS** — the nginx config in `deploy/nginx/` ships as plain HTTP with
+  an HTTPS block template commented out at the bottom. Fill in real
+  certificate paths (Let's Encrypt for a public domain, self-signed for an
+  internal-only LAN) before relying on this outside of local testing.
+
+## Rate limiting and monitoring (now built)
+
+- `/ask` and `/auth/login` are rate-limited per-IP (`slowapi`), tuned in
+  `app/config.py` (`ASK_RATE_LIMIT`, `LOGIN_RATE_LIMIT`). Limits are
+  in-memory/per-process -- would need a shared backend (e.g. Redis) if ever
+  scaled to multiple backend processes.
+- `/metrics` exposes Prometheus-format metrics automatically
+  (`prometheus-fastapi-instrumentator`). Don't expose this endpoint
+  publicly -- the provided nginx config already blocks it there; Prometheus
+  reaches it directly on the backend's own port instead.
 
 ## Planned, not yet built
 
-- HTTPS/TLS for both frontend and backend (currently plain HTTP, fine for
-  local testing, not for a real deployment on a shared network)
-- Rate limiting on `/ask` (a public kiosk endpoint with no per-user limits
-  could be spammed)
-- Multi-admin accounts / audit log (current auth is a single shared account,
-  fine for one kiosk's back office, not for multiple staff members with
-  separate accountability)
+- Multi-admin accounts already work at the DB level (`manage_admin.py`
+  supports multiple users), but there's no audit log of who changed what --
+  fine for one kiosk's back office with a couple of trusted staff, not for
+  larger-scale accountability needs.
+- Alerting on top of the Grafana dashboard (e.g. notify if the backend goes
+  down, or error rate spikes) isn't configured -- the dashboard shows the
+  data, but nothing pages anyone yet.

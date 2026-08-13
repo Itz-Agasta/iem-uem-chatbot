@@ -1,0 +1,79 @@
+# Monitoring stack for the IEM-UEM kiosk backend: Prometheus (metrics),
+# Grafana (dashboards), Loki + Promtail (log aggregation).
+#
+# The backend itself runs natively on the host (not in Docker), since it
+# needs direct GPU access for Ollama -- this compose file only runs the
+# monitoring tools, which scrape/collect from the host.
+#
+# Start:
+#   cd deploy/monitoring
+#   docker compose up -d
+#
+# Then open Grafana at http://localhost:3000 (default login admin/admin,
+# you'll be prompted to change it on first login).
+#
+# Prometheus scrapes the backend's /metrics endpoint directly on the host
+# (see prometheus/prometheus.yml) -- make sure the backend is running on
+# port 8000 before starting this stack, or Prometheus will just show the
+# target as "down" until it is.
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: iem-uem-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    # Lets the container reach the backend running on the host machine
+    # (Linux needs this explicit mapping; Docker Desktop on Mac/Windows
+    # provides host.docker.internal automatically).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: iem-uem-loki
+    restart: unless-stopped
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: iem-uem-promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      # Reads the backend's systemd journal logs (see deploy/systemd/) --
+      # requires the backend to actually be running as a systemd service.
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: iem-uem-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+
+volumes:
+  prometheus-data:
+  loki-data:
+  grafana-data:

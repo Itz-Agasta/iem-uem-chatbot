@@ -1,0 +1,25 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Reads logs from the backend's systemd service (see deploy/systemd/) via
+  # the journal, filtered to just that unit so we're not shipping every
+  # system log on the box.
+  - job_name: iem-uem-backend
+    journal:
+      max_age: 24h
+      labels:
+        job: iem-uem-backend
+    relabel_configs:
+      - source_labels: ["__journal__systemd_unit"]
+        target_label: "unit"
+      - source_labels: ["__journal__systemd_unit"]
+        regex: "iem-uem-backend.service"
+        action: keep

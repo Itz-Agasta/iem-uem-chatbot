@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "iem-uem-backend"
+    metrics_path: /metrics
+    static_configs:
+      # Backend runs natively on the host (not in this compose stack), so
+      # we reach it via the host-gateway alias set up in docker-compose.yml.
+      # EDIT if your backend runs on a different host/port than localhost:8000.
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          service: "iem-uem-backend"
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
