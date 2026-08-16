@@ -7,6 +7,8 @@ that answers questions grounded strictly in official governing body / academic
 council documents -- with voice input/output, camera-based presence
 detection, and an admin portal for managing what's shown on screen.
 
+[!Architecture](assets/iem-uem-chatbot_system_design.png)
+
 ## Repo layout
 
 ```
