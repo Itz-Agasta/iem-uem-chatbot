@@ -1,7 +1,7 @@
 # IEM-UEM Kiosk Chatbot
 
 A campus-gate kiosk system for IEM UEM (Institute of Engineering &
-Management / University of Engineering and Management, Kolkata): scrolling
+Management, University of Engineering and Management, Kolkata): scrolling
 accreditation/achievement tickers, today's event banner, and a chat widget
 that answers questions grounded strictly in official governing body / academic
 council documents -- with voice input/output, camera-based presence
