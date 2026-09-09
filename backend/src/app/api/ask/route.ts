@@ -18,7 +18,8 @@ const openrouter = createOpenRouter({
 let extractorPromise: ReturnType<typeof pipeline<'feature-extraction'>> | null = null;
 function getExtractor() {
   if (!extractorPromise) {
-    extractorPromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    extractorPromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2')
+      .catch((err) => { extractorPromise = null; throw err; });
   }
   return extractorPromise;
 }

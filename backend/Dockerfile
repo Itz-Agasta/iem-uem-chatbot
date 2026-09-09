@@ -34,8 +34,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # next's standalone tracing grabs onnxruntime-node's and canvas' .node files
-# but misses the .so libs they dlopen at runtime (libonnxruntime.so.1 etc),
-# so copy the full packages in or the container crashes on the first /ask call
+# but misses the .so libs they dlopen at runtime (libonnxruntime.so.1 etc).
+# both ship those libs bundled inside their own package dir though (not linked
+# against system cairo/pango/etc), so copying the whole package is enough.
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/onnxruntime-node ./node_modules/onnxruntime-node
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/canvas ./node_modules/canvas
 
