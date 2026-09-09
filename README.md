@@ -1,93 +1,89 @@
 # IEM-UEM Kiosk Chatbot
 
-A campus-gate kiosk system for IEM UEM (Institute of Engineering &
-Management, University of Engineering and Management, Kolkata): scrolling
-accreditation/achievement tickers, today's event banner, and a chat widget
-that answers questions grounded strictly in official governing body / academic
-council documents -- with voice input/output, camera-based presence
-detection, and an admin portal for managing what's shown on screen.
+The backend has been completely migrated to a **Next.js (App Router)** application. The frontend remains a React (Vite) application but has been updated to support multiple image uploads and a continuous slideshow on the main display.
 
-![Architecture](assets/iem-uem-chatbot_system_design.png)
+## Prerequisites
 
-## Repo layout
+1. **Node.js** (v18+)
+2. **PostgreSQL** database running locally with the [`pgvector`](https://github.com/pgvector/pgvector) extension installed.
+3. **OpenRouter API Key** (for accessing the Muse model via the Vercel AI SDK).
 
-```
-iem-uem-chatbot/
-├── backend/          RAG pipeline + FastAPI server (Python)
-│   ├── app/
-│   │   ├── config.py         all tunables (model, retrieval, API, DB, rate limits)
-│   │   ├── ingest.py          document loading/chunking/indexing
-│   │   ├── rag.py             hybrid retriever + LangGraph pipeline
-│   │   ├── api.py             FastAPI app: /ask, /content, admin endpoints, /metrics
-│   │   ├── auth.py            admin login (DB-backed, bcrypt) + JWT
-│   │   ├── db.py               Postgres engine/session setup
-│   │   ├── models.py           SQLAlchemy models (AdminUser)
-│   │   └── content_store.py   JSON-backed tickers + event banner storage
-│   ├── knowledge_base/  source .md/.pdf/.txt files
-│   ├── run_ingest.py     build/update the index
-│   ├── run_chat.py        terminal Q&A for testing
-│   ├── run_calibrate.py   tune the off-topic relevance threshold
-│   ├── run_api.py          run the FastAPI server
-│   └── manage_admin.py      create/list/delete admin accounts
-│
-├── frontend/         Kiosk UI + Admin Portal (TypeScript + React + Vite)
-│   └── src/
-│       ├── api.ts             backend API client
-│       ├── components/         KioskHeader, Ticker, EventBanner, ChatWidget
-│       ├── hooks/               presence detection, TTS, STT
-│       ├── admin/                admin portal (login, event/ticker editors)
-│       └── data/                 fallback mock content
-│
-├── deploy/           Production deployment: systemd, nginx, monitoring
-│   ├── systemd/        keeps the backend running (auto-restart, survives reboots)
-│   ├── nginx/            SPA fallback + reverse proxy + HTTPS template
-│   └── monitoring/        Prometheus + Grafana + Loki (Docker Compose)
-│
-└── docs/
-    └── architecture.md  how the pieces fit together
-```
+---
 
-## Status
+## 1. Environment & API Keys Setup
 
-| Piece | Status |
-|---|---|
-| RAG backend (retrieval, grounding, off-topic refusal) | Working, testable via `backend/run_chat.py` |
-| FastAPI server (`/ask`, content management, admin auth) | Working |
-| Kiosk frontend (tickers, event banner, chat widget, fullscreen) | Working, connected to the real backend |
-| Voice input/output (speech-to-text, text-to-speech) | Working (browser Web Speech API) |
-| Presence detection (auto-open on approach, auto-collapse on leaving) | Working (face-api.js, client-side only) |
-| Admin portal (event banner, tickers, index refresh) | Working, at `/admin` |
-| Responsive layout (portrait kiosk display + landscape testing) | Working |
-| Admin accounts (Postgres, bcrypt-hashed passwords) | Working, see `backend/README.md` |
-| Rate limiting (`/ask`, `/auth/login`) | Working, tested |
-| Prometheus metrics (`/metrics`) | Working, tested |
-| systemd service, nginx SPA fallback, Grafana/Loki monitoring stack | Ready to deploy, see `deploy/README.md` |
+You will need to provide your API keys to the backend. Navigate to the `backend/` directory and edit the `.env.local` file:
 
-See `docs/architecture.md` for how the pieces connect, and `deploy/README.md`
-for taking this from "works on my machine" to a persistent, monitored
-deployment.
-
-## Quick start
-
-**Backend:**
 ```bash
 cd backend
-pip install -r requirements.txt
-python run_ingest.py
-python manage_admin.py create --username admin   # first-time only
-python run_api.py
+nano .env.local
 ```
 
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
+Ensure the following keys are populated in your `.env.local`:
+
+```env
+# 1. PostgreSQL Connection String (Update with your actual DB credentials)
+# Ensure the database (e.g., iem_uem_kiosk) exists and the user has permissions.
+DATABASE_URL="postgresql://iem_uem:iem_uem_password@localhost:5432/iem_uem_kiosk"
+
+# 2. OpenRouter API Key (Required for the Vercel AI SDK to call the Muse model)
+OPENROUTER_API_KEY="your_openrouter_api_key_here"
+
+# 3. JWT Secret (Used for Admin Portal sessions)
+JWT_SECRET_KEY="your_secure_random_string_here"
 ```
 
-Kiosk display: `http://localhost:5173`
-Admin portal: `http://localhost:5173/admin` (an unobtrusive gear icon next to
-the UEM logo on the homepage also links here).
+---
 
-**For a real deployment** (not just local testing), see `deploy/README.md`
-for systemd, nginx, and monitoring setup.
+## 2. Backend Setup (Next.js)
+
+The backend uses **Vercel AI SDK**, **pgvector** for RAG, and **Xenova Transformers** (for fast, local embedding of text chunks without an external API).
+
+1. Install backend dependencies:
+   ```bash
+   cd backend
+   npm install
+   ```
+2. **Initialize the Database:**
+   This script will automatically enable the `vector` extension, create the necessary tables (`admin_users` and `document_chunks`), and insert the default admin user account (Username: `admin`, Password: `admin`).
+   ```bash
+   npm run init-db
+   ```
+3. Start the backend development server:
+   ```bash
+   npm run dev
+   ```
+   *The backend will now be running on `http://localhost:8000`.*
+
+---
+
+## 3. Frontend Setup (Vite + React)
+
+The frontend is a Vite app. It connects to the Next.js backend on port 8000.
+
+1. Open a new terminal and navigate to the frontend:
+   ```bash
+   cd frontend
+   ```
+2. Install frontend dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the frontend development server:
+   ```bash
+   npm run dev
+   ```
+
+* **Kiosk Display:** `http://localhost:5173`
+* **Admin Portal:** `http://localhost:5173/admin`
+
+---
+
+## What Changed?
+
+* **Next.js Backend:** The complete backend architecture (FastAPI/Python) was replaced with Next.js API routes (`backend/src/app/api`).
+* **Vercel AI SDK & OpenRouter:** Replaced local Ollama execution with `pgvector` RAG tools called directly by the OpenRouter `meta/muse-spark-1.3` model.
+* **Admin Portal UI:** Removed the scrollbar when logged in (`overflow: hidden`).
+* **Multiple Image Uploads:** The `EventEditor` now allows selecting multiple images.
+* **Slideshow Display:** `EventBanner.tsx` displays the 1st image for 3 seconds, transitions to the next, and seamlessly loops back to the first in a continuous circular loop.
+* **Vectorizing MD files:** The `knowledge_base/*.md` files are chunked and converted into vectors using the `Xenova/all-MiniLM-L6-v2` embedding model before being stored in PostgreSQL.

@@ -1,7 +1,7 @@
 .admin-shell {
-  min-height: 100vh;
-  background: var(--bg);
   overflow-y: auto;
+  height: 100vh;
+  background: var(--bg);
 }
 
 .admin-header {

@@ -2,7 +2,7 @@
 // server's address once deployed (e.g. "http://192.168.1.50:8000").
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-export interface EventBannerContent {
+export interface EventSlide {
   title: string;
   subtitle: string;
   image_url: string;
@@ -11,17 +11,17 @@ export interface EventBannerContent {
 export interface KioskContent {
   top_ticker: string[];
   bottom_ticker: string[];
-  event: EventBannerContent;
+  events: EventSlide[];
 }
 
 export async function fetchContent(): Promise<KioskContent> {
-  const res = await fetch(`${API_BASE_URL}/content`);
+  const res = await fetch(`${API_BASE_URL}/api/content`);
   if (!res.ok) throw new Error(`Failed to fetch content (${res.status})`);
   return res.json();
 }
 
 export async function askQuestion(question: string): Promise<string> {
-  const res = await fetch(`${API_BASE_URL}/ask`, {
+  const res = await fetch(`${API_BASE_URL}/api/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question }),
@@ -41,7 +41,7 @@ export function resolveImageUrl(url: string): string {
 
 // --- Admin API -----------------------------------------------------------------
 export async function adminLogin(username: string, password: string): Promise<string> {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -60,7 +60,7 @@ export async function updateTickers(
   top_ticker: string[] | null,
   bottom_ticker: string[] | null
 ): Promise<KioskContent> {
-  const res = await fetch(`${API_BASE_URL}/admin/content/tickers`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/content/tickers`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ top_ticker, bottom_ticker }),
@@ -69,37 +69,38 @@ export async function updateTickers(
   return res.json();
 }
 
-export async function updateEventText(
+export async function updateEvents(
   token: string,
-  title: string | null,
-  subtitle: string | null
+  events: EventSlide[]
 ): Promise<KioskContent> {
-  const res = await fetch(`${API_BASE_URL}/admin/content/event`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/content/event`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
-    body: JSON.stringify({ title, subtitle }),
+    body: JSON.stringify({ events }),
   });
-  if (!res.ok) throw new Error(`Failed to update event (${res.status})`);
+  if (!res.ok) throw new Error(`Failed to update events (${res.status})`);
   return res.json();
 }
 
-export async function uploadEventImage(token: string, file: File): Promise<KioskContent> {
+export async function uploadEventImages(token: string, files: FileList | File[]): Promise<{ urls: string[] }> {
   const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch(`${API_BASE_URL}/admin/content/event/image`, {
+  for (let i = 0; i < files.length; i++) {
+    formData.append("files", files[i]);
+  }
+  const res = await fetch(`${API_BASE_URL}/api/admin/content/event/images`, {
     method: "POST",
     headers: authHeaders(token),
     body: formData,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Failed to upload image (${res.status})`);
+    throw new Error(body.detail || `Failed to upload images (${res.status})`);
   }
   return res.json();
 }
 
 export async function refreshBackendIndex(token: string): Promise<{ status: string; chunk_count: number }> {
-  const res = await fetch(`${API_BASE_URL}/admin/refresh-index`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/refresh-index`, {
     method: "POST",
     headers: authHeaders(token),
   });

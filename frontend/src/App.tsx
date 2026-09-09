@@ -17,11 +17,13 @@ export default function App() {
   const [content, setContent] = useState<KioskContent>({
     top_ticker: topTickerItems,
     bottom_ticker: bottomTickerItems,
-    event: {
-      title: todayEvent.title,
-      subtitle: todayEvent.subtitle,
-      image_url: todayEvent.imageUrl,
-    },
+    events: [
+      {
+        title: todayEvent.title,
+        subtitle: todayEvent.subtitle,
+        image_url: (todayEvent.imageUrls && todayEvent.imageUrls.length > 0) ? todayEvent.imageUrls[0] : "",
+      }
+    ]
   });
 
   useEffect(() => {
@@ -45,7 +47,10 @@ export default function App() {
     };
   }, []);
 
-  const hasEventImage = !!content.event.image_url;
+  const resolvedEvents = (content.events || []).map(e => ({
+    ...e,
+    image_url: resolveImageUrl(e.image_url)
+  }));
 
   return (
     <div className="kiosk-shell">
@@ -53,11 +58,7 @@ export default function App() {
 
       <Ticker items={content.top_ticker} position="top" />
 
-      <EventBanner
-        title={content.event.title}
-        subtitle={content.event.subtitle}
-        imageUrl={hasEventImage ? resolveImageUrl(content.event.image_url) : todayEvent.imageUrl}
-      />
+      <EventBanner events={resolvedEvents} />
 
       <Ticker items={content.bottom_ticker} position="bottom" />
 

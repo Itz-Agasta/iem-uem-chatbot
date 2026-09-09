@@ -6,8 +6,15 @@ interface TickerProps {
 }
 
 export default function Ticker({ items, position }: TickerProps) {
-  // Duplicate the items so the scroll loop is seamless.
-  const loopItems = [...items, ...items];
+  let loopItems: string[] = [];
+  
+  if (items && items.length > 0) {
+    let baseItems = [...items];
+    while (baseItems.length < 15) {
+      baseItems = [...baseItems, ...items];
+    }
+    loopItems = [...baseItems, ...baseItems];
+  }
 
   return (
     <div className={`ticker ticker-${position}`}>

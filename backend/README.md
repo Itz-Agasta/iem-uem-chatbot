@@ -1,165 +1,36 @@
-# Backend -- RAG Pipeline + API
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Hybrid FAISS + BM25 retrieval, LangGraph retrieve/guard/generate flow,
-incremental document ingestion, wrapped in a FastAPI server that also
-handles kiosk content management (event banner, tickers) for the admin
-portal.
+## Getting Started
 
-## Setup
+First, run the development server:
 
 ```bash
-pip install -r requirements.txt
-
-# Install Ollama if not already present: https://ollama.com/download
-ollama pull qwen2.5:14b-instruct-q4_K_M
-
-# Put source files here (already includes the 3 governing body reports):
-cp /path/to/*.md knowledge_base/
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## Database setup (Postgres)
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Admin accounts (for the admin portal login) are stored in Postgres, not
-hardcoded. Set it up once:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-```bash
-# Install Postgres if not already present, then create the DB + user:
-sudo -u postgres psql -c "CREATE USER iem_uem WITH PASSWORD 'a-real-password';"
-sudo -u postgres psql -c "CREATE DATABASE iem_uem_kiosk OWNER iem_uem;"
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-# Point the app at it:
-export DATABASE_URL="postgresql+psycopg2://iem_uem:a-real-password@localhost:5432/iem_uem_kiosk"
+## Learn More
 
-# Create your first admin account (table is created automatically):
-python manage_admin.py create --username admin
-# (you'll be prompted for a password -- safer than passing it on the command line)
-```
+To learn more about Next.js, take a look at the following resources:
 
-`manage_admin.py` also supports `list`, `set-password`, and `delete` -- run
-`python manage_admin.py --help` for details. There are no default/hardcoded
-admin credentials; you must create an account before `/admin` login works.
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## Build the index
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-```bash
-python run_ingest.py
-```
+## Deploy on Vercel
 
-Re-run any time you add, change, or remove files in `knowledge_base/` --
-only new/changed files are re-chunked (tracked via a SHA-256 manifest in
-`index_store/manifest.json`, auto-created). You can also trigger this
-remotely from the admin portal's "Refresh Index" button once the API is
-running, without restarting the server.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Calibrate the relevance threshold (recommended, once)
-
-```bash
-python run_calibrate.py
-```
-
-Compare the printed FAISS distance scores for on-topic vs. off-topic test
-questions, then set `RELEVANCE_THRESHOLD` in `app/config.py` to a value
-between the two clusters.
-
-## Try it (terminal Q&A, before wiring up the API/frontend)
-
-```bash
-python run_chat.py
-```
-
-## Run the API server
-
-```bash
-python run_api.py
-```
-
-Starts on `http://0.0.0.0:8000` by default (see `app/config.py` to change
-host/port). The model loads once at startup -- watch the console for
-"RAG pipeline ready." before hitting `/ask`.
-
-**Before running in production:** set a real JWT secret (the default is a
-dev-only placeholder, not safe to deploy as-is) and make sure `DATABASE_URL`
-points at your real Postgres instance:
-
-```bash
-export JWT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
-export DATABASE_URL="postgresql+psycopg2://iem_uem:a-real-password@localhost:5432/iem_uem_kiosk"
-```
-
-Also update `CORS_ORIGINS` in `app/config.py` to include your deployed
-frontend's actual URL (it currently only allows `localhost:5173` for local
-dev).
-
-### Endpoints
-
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| POST | `/ask` | none | Ask the chatbot a question -- rate limited (15/min/IP, see `app/config.py`) |
-| GET | `/content` | none | Current tickers + event banner (kiosk polls this) |
-| POST | `/auth/login` | none | Admin login, returns a JWT -- rate limited (5/min/IP) |
-| PUT | `/admin/content/tickers` | admin | Update ticker text lists |
-| PUT | `/admin/content/event` | admin | Update event title/subtitle |
-| POST | `/admin/content/event/image` | admin | Upload event banner image |
-| POST | `/admin/refresh-index` | admin | Re-scan `knowledge_base/`, rebuild index in place |
-| GET | `/uploads/{filename}` | none | Serves uploaded event images |
-| GET | `/metrics` | none | Prometheus scrape target -- don't expose publicly, see `deploy/` |
-| GET | `/health` | none | Basic liveness check |
-
-Interactive API docs are auto-generated at `http://localhost:8000/docs`
-while the server is running.
-
-### Running persistently, reverse proxy, and monitoring
-
-See **`deploy/README.md`** at the repo root for systemd (keeps the backend
-running across crashes/reboots), nginx (SPA fallback + reverse proxy), and
-a full Prometheus + Grafana + Loki monitoring stack -- all ready to use,
-just needs paths/domains filled in for your actual server.
-
-## Using RAGPipeline as a library
-
-```python
-from app.rag import RAGPipeline
-
-pipeline = RAGPipeline()
-answer = pipeline.ask("What were the key achievements in the 38th council meeting?")
-
-# after adding new files to knowledge_base/:
-pipeline.refresh_index()
-```
-
-## Structure
-
-```
-app/
-  config.py         all tunables: model, chunk size, k, threshold, prompt, API/DB settings
-  ingest.py         loading, chunking, incremental indexing
-  rag.py            hybrid retriever + LangGraph pipeline + RAGPipeline class
-  api.py            FastAPI app: /ask, /content, admin content management, rate limiting, /metrics
-  auth.py           admin login (DB-backed, bcrypt) + JWT verification
-  db.py             Postgres engine/session setup
-  models.py         SQLAlchemy models (AdminUser)
-  content_store.py  JSON-backed store for tickers + event banner
-run_ingest.py        entrypoint: build/update the index
-run_chat.py           entrypoint: interactive terminal Q&A
-run_calibrate.py      entrypoint: tune RELEVANCE_THRESHOLD
-run_api.py             entrypoint: run the FastAPI server
-manage_admin.py         entrypoint: create/list/delete admin accounts
-knowledge_base/       source .md / .pdf / .txt files
-index_store/          persisted FAISS index + manifest (auto-created, gitignored)
-data/                 content.json + uploaded event images (auto-created, gitignored)
-```
-
-## Current config notes
-
-- Model: `qwen2.5:14b-instruct-q4_K_M` -- default for a 24GB VRAM box. Bump
-  to `qwen2.5:32b-instruct-q4_K_M` in `app/config.py` if extraction still
-  feels vague after tuning retrieval.
-- `num_ctx=16384` set explicitly (Ollama defaults to 2048, which silently
-  truncates context).
-- `RELEVANCE_THRESHOLD` ships with a placeholder -- calibrate it for your
-  actual documents before relying on it to reject off-topic questions.
-- Admin accounts live in Postgres with bcrypt-hashed passwords (see
-  `app/models.py`, `manage_admin.py`) -- multiple admins are supported, and
-  there are no default/hardcoded credentials. Deleting an account
-  immediately invalidates any of that admin's outstanding tokens (checked
-  on every request, not just at login).
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
