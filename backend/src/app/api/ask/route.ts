@@ -14,6 +14,15 @@ const openrouter = createOpenRouter({
   }
 });
 
+// cache this - reloading the model on every call was adding ~20-30s per /ask
+let extractorPromise: ReturnType<typeof pipeline<'feature-extraction'>> | null = null;
+function getExtractor() {
+  if (!extractorPromise) {
+    extractorPromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+  }
+  return extractorPromise;
+}
+
 export async function POST(request: Request) {
   try {
     const { question } = await request.json();
@@ -32,7 +41,7 @@ export async function POST(request: Request) {
           }),
           // @ts-ignore
           execute: async ({ query }: { query: string }) => {
-            const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+            const extractor = await getExtractor();
             const output = await extractor(query, { pooling: 'mean', normalize: true });
             const embedding = Array.from(output.data);
 
@@ -45,7 +54,7 @@ export async function POST(request: Request) {
                 ORDER BY embedding <=> $1::vector
                 LIMIT 5
               `, [JSON.stringify(embedding)]);
-              
+
               relevantChunks = result.rows
                 .filter(r => r.similarity > 0.1)
                 .map(r => r.content);
