@@ -39,11 +39,11 @@
 .ticker-track {
   display: flex;
   white-space: nowrap;
-  animation: scroll-left 38s linear infinite;
+  animation: scroll-left 60s linear infinite;
 }
 
 .ticker-track-bottom {
-  animation-duration: 42s;
+  animation-duration: 70s;
   animation-direction: reverse;
 }
 

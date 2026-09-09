@@ -19,8 +19,8 @@ export const bottomTickerItems: string[] = [
 export const todayEvent = {
   title: "Guest Lecture: AI in Modern Engineering",
   subtitle: "Auditorium Hall 2 · 11:00 AM – 1:00 PM",
-  imageUrl:
-    "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1600&auto=format&fit=crop",
+  imageUrls: [
+    "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1600&auto=format&fit=crop"],
 };
 
 // Mocked backend responses -- swap ChatWidget's `mockAsk` for a real

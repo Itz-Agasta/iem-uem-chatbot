@@ -3,9 +3,9 @@ import {
   adminLogin,
   fetchContent,
   refreshBackendIndex,
-  updateEventText,
+  updateEvents,
   updateTickers,
-  uploadEventImage,
+  uploadEventImages,
   type KioskContent,
 } from "../api";
 import TickerEditor from "./TickerEditor";
@@ -67,16 +67,14 @@ export default function AdminApp() {
         {content && (
           <>
             <EventEditor
-              title={content.event.title}
-              subtitle={content.event.subtitle}
-              imageUrl={content.event.image_url}
-              onSaveText={async (title, subtitle) => {
-                const updated = await updateEventText(token, title, subtitle);
+              events={content.events || []}
+              onSave={async (events) => {
+                const updated = await updateEvents(token, events);
                 setContent(updated);
               }}
               onUploadImage={async (file) => {
-                const updated = await uploadEventImage(token, file);
-                setContent(updated);
+                // uploadEventImages now returns { urls: string[] }
+                return await uploadEventImages(token, [file]);
               }}
             />
 
