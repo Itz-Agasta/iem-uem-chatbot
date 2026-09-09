@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { usePresenceDetection } from "../hooks/usePresenceDetection";
 import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
 import { useSpeechToText } from "../hooks/useSpeechToText";
@@ -216,7 +218,9 @@ export default function ChatWidget() {
           <div className="chat-messages" ref={scrollRef}>
             {messages.map((m) => (
               <div key={m.id} className={`chat-bubble-row ${m.role}`}>
-                <div className={`chat-bubble ${m.role}`}>{m.text}</div>
+                <div className={`chat-bubble ${m.role}`}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                </div>
               </div>
             ))}
             {isTyping && (
