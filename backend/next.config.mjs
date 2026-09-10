@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@huggingface/transformers', 'sharp'],
+  output: 'standalone',
+  serverExternalPackages: ['@huggingface/transformers', 'sharp', 'canvas'],
   async headers() {
     return [
       {

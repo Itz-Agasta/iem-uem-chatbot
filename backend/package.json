@@ -39,9 +39,11 @@
     "typescript": "^5"
   },
   "allowScripts": {
-    "sharp@0.32.6": true,
-    "sharp@0.35.4": true,
     "canvas@2.11.2": true,
-    "canvas@3.2.3": true
+    "canvas@3.2.3": true,
+    "esbuild@0.28.2": true,
+    "onnxruntime-node@1.24.3": true,
+    "protobufjs@7.6.6": true,
+    "unrs-resolver@1.12.2": true
   }
 }
