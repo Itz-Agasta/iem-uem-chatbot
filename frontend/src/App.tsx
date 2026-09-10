@@ -62,6 +62,10 @@ export default function App() {
 
       <Ticker items={content.bottom_ticker} position="bottom" />
 
+      <div className="copyright-panel">
+        &copy; {new Date().getFullYear()} Department of CSE(AI), UEM Kolkata
+      </div>
+
       <ChatWidget />
     </div>
   );

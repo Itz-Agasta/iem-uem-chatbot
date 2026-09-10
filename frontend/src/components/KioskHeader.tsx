@@ -6,7 +6,7 @@ export default function KioskHeader() {
       <img src="/branding/iem_logo.svg" alt="Institute of Engineering & Management" className="brand-logo brand-logo-left" />
 
       <div className="header-center-title" style={{ flex: 1, textAlign: 'center', fontWeight: 'bold', fontSize: 'clamp(26px, 3.5vw, 42px)', color: 'white', letterSpacing: '1px' }}>
-        INSTITUTE OF ENGINEERING AND MANAGEMENT, KOLKATA
+        UNIVERSITY OF ENGINEERING AND MANAGEMENT, KOLKATA
       </div>
 
       <div className="header-right-group">
