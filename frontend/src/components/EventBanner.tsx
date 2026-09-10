@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { EventSlide } from "../api";
 import "./EventBanner.css";
 
@@ -6,11 +6,25 @@ interface EventBannerProps {
   events: EventSlide[];
 }
 
+interface RightPanelSlide {
+  title: string;
+  subtitle: string;
+  details: string;
+}
+
+const defaultRightSlides: RightPanelSlide[] = [
+  {
+    title: "UPCOMING EVENTS",
+    subtitle: "Join us for our next big activities",
+    details: "IEM-UEM Group constantly organizes tech fests, cultural programs, and placement drives to ensure all-around development."
+  }
+];
+
 export default function EventBanner({ events }: EventBannerProps) {
+  // LEFT SLIDES
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
-  // Reset index if events array changes
   useEffect(() => {
     setCurrentIndex(0);
     setIsTransitioning(true);
@@ -27,62 +41,150 @@ export default function EventBanner({ events }: EventBannerProps) {
 
   useEffect(() => {
     if (!events || events.length <= 1) return;
-    
-    // When we reach the cloned first slide, wait for animation to complete
-    // then silently jump back to the actual first slide without transition
     if (currentIndex === events.length) {
       const timeout = setTimeout(() => {
         setIsTransitioning(false);
         setCurrentIndex(0);
-      }, 800); // 800ms to match the transition duration
+      }, 800);
       return () => clearTimeout(timeout);
     }
   }, [currentIndex, events]);
 
-  const today = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-  // Append a clone of the first slide at the end to create a seamless infinite loop
   const slidesToRender = events && events.length > 0 ? [...events, events[0]] : [];
   const numSlides = slidesToRender.length > 0 ? slidesToRender.length : 1;
 
+  // RIGHT SLIDES
+  const lastRawData = useRef<string | null>(null);
+
+  const [rightSlides, setRightSlides] = useState<RightPanelSlide[]>(() => {
+    try {
+      const data = localStorage.getItem("eventPanelSlides");
+      if (data) {
+        lastRawData.current = data;
+        return JSON.parse(data);
+      }
+      const t = localStorage.getItem("eventPanelTitle");
+      if (t) {
+        return [{
+          title: t,
+          subtitle: localStorage.getItem("eventPanelSubtitle") || "",
+          details: localStorage.getItem("eventPanelDetails") || ""
+        }];
+      }
+    } catch {}
+    return defaultRightSlides;
+  });
+
+  const [rightIndex, setRightIndex] = useState(0);
+  const [rightTransitioning, setRightTransitioning] = useState(true);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      try {
+        const data = localStorage.getItem("eventPanelSlides");
+        if (data && data !== lastRawData.current) {
+          lastRawData.current = data;
+          setRightSlides(JSON.parse(data));
+        }
+      } catch {}
+    };
+    window.addEventListener("storage", handleStorage);
+    const interval = setInterval(handleStorage, 2000);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    setRightIndex(0);
+    setRightTransitioning(true);
+  }, [rightSlides]);
+
+  useEffect(() => {
+    if (!rightSlides || rightSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setRightTransitioning(true);
+      setRightIndex((prev) => prev + 1);
+    }, 18000); // 18 seconds per slide
+    return () => clearInterval(interval);
+  }, [rightSlides]);
+
+  useEffect(() => {
+    if (!rightSlides || rightSlides.length <= 1) return;
+    if (rightIndex === rightSlides.length) {
+      const timeout = setTimeout(() => {
+        setRightTransitioning(false);
+        setRightIndex(0);
+      }, 800);
+      return () => clearTimeout(timeout);
+    }
+  }, [rightIndex, rightSlides]);
+
+  const rightSlidesToRender = rightSlides && rightSlides.length > 0 ? [...rightSlides, rightSlides[0]] : [];
+  const numRightSlides = rightSlidesToRender.length > 0 ? rightSlidesToRender.length : 1;
+
   return (
-    <div className="event-banner">
-      <div 
-        className="event-slider-track"
-        style={{
-          transform: `translateX(-${currentIndex * (100 / numSlides)}%)`,
-          width: `${numSlides * 100}%`,
-          transition: isTransitioning ? 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)' : 'none'
-        }}
-      >
-        {slidesToRender.length > 0 ? (
-          slidesToRender.map((slide, idx) => (
+    <div className="event-banner-container">
+      {/* LEFT PART */}
+      <div className="event-banner">
+        <div 
+          className="event-slider-track"
+          style={{
+            transform: `translateX(-${currentIndex * (100 / numSlides)}%)`,
+            width: `${numSlides * 100}%`,
+            transition: isTransitioning ? 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)' : 'none'
+          }}
+        >
+          {slidesToRender.length > 0 ? (
+            slidesToRender.map((slide, idx) => (
+              <div 
+                className="event-slide-item left-slide-item" 
+                key={idx}
+                style={{ width: `${100 / numSlides}%` }}
+              >
+                {slide.image_url && (
+                  <img className="event-image" src={slide.image_url} alt={slide.title} />
+                )}
+                <div className="event-overlay" />
+                <div className="event-text">
+                  <h1 className="event-title">{slide.title || ""}</h1>
+                  <p className="event-subtitle">{slide.subtitle || ""}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="event-slide-item left-slide-item" style={{ width: "100%" }}>
+               <div className="event-overlay" />
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* RIGHT PART */}
+      <div className="event-panel-right">
+        <div 
+          className="event-slider-track"
+          style={{
+            transform: `translateX(-${rightIndex * (100 / numRightSlides)}%)`,
+            width: `${numRightSlides * 100}%`,
+            transition: rightTransitioning ? 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)' : 'none'
+          }}
+        >
+          {rightSlidesToRender.map((slide, idx) => (
             <div 
-              className="event-slide-item" 
+              className="event-slide-item right-slide-item" 
               key={idx}
-              style={{ width: `${100 / numSlides}%` }}
+              style={{ width: `${100 / numRightSlides}%` }}
             >
-              {slide.image_url && (
-                <img className="event-image" src={slide.image_url} alt={slide.title} />
-              )}
-              <div className="event-overlay" />
-              <div className="event-text">
-                <span className="event-date">{today}</span>
-                <h1 className="event-title">{slide.title || ""}</h1>
-                <p className="event-subtitle">{slide.subtitle || ""}</p>
+              <div className="event-panel-content">
+                <h1 className="event-panel-title">{slide.title}</h1>
+                <h2 className="event-panel-subtitle">{slide.subtitle}</h2>
+                <h3 className="event-panel-details">{slide.details}</h3>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="event-slide-item" style={{ width: "100%" }}>
-             <div className="event-overlay" />
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );

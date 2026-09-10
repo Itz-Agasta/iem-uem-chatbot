@@ -40,12 +40,12 @@
   position: relative;
   padding: clamp(28px, 4vh, 56px) clamp(28px, 5vw, 64px);
   color: white;
-  max-width: 900px;
+  max-width: 1200px;
 }
 
 .event-date {
   display: inline-block;
-  font-size: clamp(12px, 1.4vw, 15px);
+  font-size: clamp(16px, 1.8vw, 22px);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -54,7 +54,7 @@
 }
 
 .event-title {
-  font-size: clamp(26px, 4vw, 48px);
+  font-size: clamp(36px, 5vw, 64px);
   font-weight: 700;
   line-height: 1.15;
   margin-bottom: 10px;
@@ -62,7 +62,7 @@
 }
 
 .event-subtitle {
-  font-size: clamp(15px, 1.6vw, 19px);
+  font-size: clamp(20px, 2.2vw, 28px);
   font-weight: 400;
   color: #eee;
 }
@@ -85,12 +85,86 @@
     padding: clamp(32px, 5vh, 64px) clamp(24px, 6vw, 48px);
   }
   .event-date {
-    font-size: clamp(14px, 1.8vh, 18px);
+    font-size: clamp(18px, 2.2vh, 24px);
   }
   .event-title {
-    font-size: clamp(32px, 5.5vh, 64px);
+    font-size: clamp(42px, 6.5vh, 80px);
   }
   .event-subtitle {
-    font-size: clamp(17px, 2.4vh, 24px);
+    font-size: clamp(22px, 3vh, 32px);
+  }
+}
+
+.event-banner-container {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.event-banner {
+  flex: 45; /* Takes up 45% of the space */
+  position: relative;
+  overflow: hidden;
+}
+
+.event-panel-right {
+  flex: 55; /* Takes up 55% of the space */
+  position: relative;
+  overflow: hidden;
+  background: var(--navy);
+  color: white;
+  border-left: 2px solid var(--gold);
+}
+
+.right-slide-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: clamp(24px, 4vw, 48px);
+}
+
+.event-panel-content {
+  max-width: 90%;
+}
+
+.event-panel-title {
+  font-size: clamp(32px, 4vw, 56px);
+  font-weight: 800;
+  color: var(--gold);
+  margin-bottom: clamp(16px, 2vh, 24px);
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.event-panel-subtitle {
+  font-size: clamp(20px, 2.5vw, 36px);
+  font-weight: 600;
+  margin-bottom: clamp(16px, 2vh, 24px);
+  color: #fff;
+}
+
+.event-panel-details {
+  font-size: clamp(16px, 1.8vw, 24px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+}
+
+@media (orientation: portrait) {
+  .event-banner-container {
+    flex-direction: column;
+  }
+  .event-banner {
+    flex: 1;
+  }
+  .event-panel-right {
+    flex: none;
+    height: 30vh;
+    border-left: none;
+    border-top: 2px solid var(--gold);
   }
 }
