@@ -2,25 +2,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: clamp(64px, 8vh, 104px);
+  height: clamp(80px, 10vh, 130px);
   padding: 0 clamp(16px, 3vw, 32px);
   background: var(--navy);
   flex-shrink: 0;
 }
 
 .brand-logo {
-  height: clamp(38px, 6vh, 68px);
+  height: clamp(52px, 8vh, 90px);
   width: auto;
   object-fit: contain;
 }
 
 @media (orientation: portrait) {
   .kiosk-header {
-    height: clamp(72px, 7vh, 120px);
+    height: clamp(90px, 9vh, 140px);
     padding: 0 clamp(20px, 4vw, 40px);
   }
   .brand-logo {
-    height: clamp(44px, 5.5vh, 76px);
+    height: clamp(60px, 7vh, 96px);
   }
 }
 
