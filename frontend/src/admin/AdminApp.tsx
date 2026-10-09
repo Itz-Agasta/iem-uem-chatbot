@@ -6,6 +6,7 @@ import {
   updateEvents,
   updateTickers,
   uploadEventImages,
+  addAdminUser,
   type KioskContent,
 } from "../api";
 import TickerEditor from "./TickerEditor";
@@ -100,6 +101,8 @@ export default function AdminApp() {
             />
 
             <RagIndexCard token={token} />
+            
+            <AdminUserCard token={token} />
           </>
         )}
       </main>
@@ -189,6 +192,61 @@ function RagIndexCard({ token }: { token: string }) {
         </button>
         {status && <span className="admin-saved-message">{status}</span>}
       </div>
+    </div>
+  );
+}
+
+function AdminUserCard({ token }: { token: string }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatus("");
+    try {
+      const result = await addAdminUser(token, username, password);
+      setStatus(result.message);
+      setUsername("");
+      setPassword("");
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Failed to add user.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="admin-card">
+      <h2 className="admin-card-title">Manage Admin Users</h2>
+      <p className="admin-card-desc">
+        Create a new admin account to manage kiosk content.
+      </p>
+      <form onSubmit={handleAddUser} style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "1rem" }}>
+        <input
+          className="admin-input"
+          placeholder="New Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <input
+          className="admin-input"
+          type="password"
+          placeholder="New Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <div className="admin-card-footer" style={{ marginTop: "0.5rem" }}>
+          <button className="admin-btn" type="submit" disabled={loading}>
+            {loading ? "Adding..." : "Add User"}
+          </button>
+          {status && <span className="admin-saved-message">{status}</span>}
+        </div>
+      </form>
     </div>
   );
 }

@@ -115,3 +115,16 @@ export async function refreshBackendIndex(token: string): Promise<{ status: stri
   if (!res.ok) throw new Error(`Failed to refresh index (${res.status})`);
   return res.json();
 }
+
+export async function addAdminUser(token: string, username: string, password: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to add user (${res.status})`);
+  }
+  return res.json();
+}
