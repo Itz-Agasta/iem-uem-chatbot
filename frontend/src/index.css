@@ -25,6 +25,11 @@
   --shadow: 0 8px 30px rgba(15, 26, 66, 0.08);
   --shadow-lg: 0 20px 60px rgba(15, 26, 66, 0.18);
   --radius: 16px;
+
+  /* Webcam preview fills the bottom-left block of the bottom ticker. The
+     ticker reserves matching space on its left so its label/content starts
+     right where the preview ends -- no gap or background strip between them. */
+  --camera-feed-width: clamp(170px, 15vw, 270px);
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 

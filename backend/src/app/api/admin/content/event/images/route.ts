@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth';
+import { superAdminError } from '@/lib/auth';
 import { pool } from '@/lib/db';
 
 export async function POST(request: Request) {
-  if (!verifyAuth(request)) return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+  const denied = superAdminError(request);
+  if (denied) return denied;
   
   const formData = await request.formData();
   const files = formData.getAll("files") as File[];

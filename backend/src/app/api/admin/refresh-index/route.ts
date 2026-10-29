@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth';
+import { superAdminError } from '@/lib/auth';
 import { pool } from '@/lib/db';
 import fs from 'fs/promises';
 import path from 'path';
@@ -28,7 +28,8 @@ function chunkText(text: string, maxLen: number = 1000): string[] {
 }
 
 export async function POST(request: Request) {
-  if (!verifyAuth(request)) return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+  const denied = superAdminError(request);
+  if (denied) return denied;
   
   const kbDir = path.join(process.cwd(), 'knowledge_base');
   await fs.mkdir(kbDir, { recursive: true });

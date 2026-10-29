@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getContent, saveContent } from '@/lib/content';
-import { verifyAuth } from '@/lib/auth';
+import { superAdminError } from '@/lib/auth';
 
 export async function PUT(request: Request) {
-  if (!verifyAuth(request)) return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
+  const denied = superAdminError(request);
+  if (denied) return denied;
   
   const body = await request.json();
   const content = await getContent();

@@ -19,7 +19,7 @@ export interface KioskContent {
   right_slides?: RightPanelSlide[];
 }
 
-const defaultContent: KioskContent = {
+export const defaultContent: KioskContent = {
   top_ticker: [
     "NAAC A+ Accredited Institution",
     "Ranked among Top Engineering Colleges in Eastern India — NIRF 2025",

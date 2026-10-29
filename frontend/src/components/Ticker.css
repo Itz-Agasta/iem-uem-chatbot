@@ -11,6 +11,9 @@
 .ticker-bottom {
   border-bottom: none;
   border-top: 1px solid var(--border);
+  /* The camera preview fills this left block exactly; the label/content
+     starts right where the preview ends. */
+  padding-left: var(--camera-feed-width);
 }
 
 .ticker-label {

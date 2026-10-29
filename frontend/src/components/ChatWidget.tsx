@@ -144,7 +144,7 @@ export default function ChatWidget() {
 
   return (
     <div className="chat-widget-root">
-      {/* Hidden camera feed used only for local face detection -- never displayed, never sent anywhere */}
+      {/* Camera feed: small live preview pinned bottom-left, also used for local face detection. Never sent anywhere. */}
       <video ref={videoRef} className="presence-video" muted playsInline />
 
       {isOpen && (

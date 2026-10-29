@@ -7,18 +7,29 @@ import {
   updateTickers,
   uploadEventImages,
   addAdminUser,
+  type AdminRole,
+  type AdminSession,
   type KioskContent,
 } from "../api";
 import TickerEditor from "./TickerEditor";
 import EventEditor from "./EventEditor";
+import EventSubmissionEditor from "./EventSubmissionEditor";
+import SubmissionReviewCard from "./SubmissionReviewCard";
 import "./AdminApp.css";
 
 const TOKEN_STORAGE_KEY = "iem_uem_admin_token";
+const ROLE_STORAGE_KEY = "iem_uem_admin_role";
+const USERNAME_STORAGE_KEY = "iem_uem_admin_username";
 
 export default function AdminApp() {
   const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(TOKEN_STORAGE_KEY));
+  const [role, setRole] = useState<AdminRole>(
+    () => (sessionStorage.getItem(ROLE_STORAGE_KEY) as AdminRole) || "admin"
+  );
   const [content, setContent] = useState<KioskContent | null>(null);
   const [loadError, setLoadError] = useState("");
+
+  const isSuperAdmin = role === "super_admin";
 
   const loadContent = async () => {
     try {
@@ -31,20 +42,28 @@ export default function AdminApp() {
   };
 
   useEffect(() => {
-    loadContent();
-  }, []);
+    if (token && isSuperAdmin) loadContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, isSuperAdmin]);
 
   const handleLogout = () => {
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(ROLE_STORAGE_KEY);
+    sessionStorage.removeItem(USERNAME_STORAGE_KEY);
     setToken(null);
+    setRole("admin");
+    setContent(null);
   };
 
   if (!token) {
     return (
       <LoginScreen
-        onLoggedIn={(t) => {
-          sessionStorage.setItem(TOKEN_STORAGE_KEY, t);
-          setToken(t);
+        onLoggedIn={(session: AdminSession) => {
+          sessionStorage.setItem(TOKEN_STORAGE_KEY, session.token);
+          sessionStorage.setItem(ROLE_STORAGE_KEY, session.role);
+          sessionStorage.setItem(USERNAME_STORAGE_KEY, session.username);
+          setToken(session.token);
+          setRole(session.role);
         }}
       />
     );
@@ -55,7 +74,11 @@ export default function AdminApp() {
       <header className="admin-header">
         <div>
           <div className="admin-header-title">IEM-UEM Kiosk Admin</div>
-          <div className="admin-header-subtitle">Manage what's shown on the campus-gate display</div>
+          <div className="admin-header-subtitle">
+            {isSuperAdmin
+              ? "Super admin -- full kiosk access"
+              : "Event admin -- submit slides for super-admin approval"}
+          </div>
         </div>
         <button className="admin-btn secondary" onClick={handleLogout}>
           Log out
@@ -65,52 +88,62 @@ export default function AdminApp() {
       <main className="admin-main">
         {loadError && <div className="admin-error-banner">{loadError}</div>}
 
-        {content && (
+        {isSuperAdmin ? (
           <>
-            <EventEditor
-              events={content.events || []}
-              rightSlides={content.right_slides || []}
-              onSave={async (events, rightSlides) => {
-                const updated = await updateEvents(token, events, rightSlides);
-                setContent(updated);
-              }}
-              onUploadImage={async (file) => {
-                // uploadEventImages now returns { urls: string[] }
-                return await uploadEventImages(token, [file]);
-              }}
-            />
+            {content && (
+              <EventEditor
+                events={content.events || []}
+                rightSlides={content.right_slides || []}
+                onSave={async (events, rightSlides) => {
+                  const updated = await updateEvents(token, events, rightSlides);
+                  setContent(updated);
+                }}
+                onUploadImage={async (file) => {
+                  // uploadEventImages now returns { urls: string[] }
+                  return await uploadEventImages(token, [file]);
+                }}
+              />
+            )}
 
-            <TickerEditor
-              title="Top Ticker -- Accreditations & Achievements"
-              description="Scrolls across the top of the kiosk screen (accreditations, rankings, awards, etc.)"
-              items={content.top_ticker}
-              onSave={async (items) => {
-                const updated = await updateTickers(token, items, null);
-                setContent(updated);
-              }}
-            />
+            <SubmissionReviewCard token={token} onReviewed={loadContent} />
 
-            <TickerEditor
-              title="Bottom Ticker -- Campus Updates"
-              description="Scrolls across the bottom of the kiosk screen (notices, placement drives, events, etc.)"
-              items={content.bottom_ticker}
-              onSave={async (items) => {
-                const updated = await updateTickers(token, null, items);
-                setContent(updated);
-              }}
-            />
+            {content && (
+              <TickerEditor
+                title="Top Ticker -- Accreditations & Achievements"
+                description="Scrolls across the top of the kiosk screen (accreditations, rankings, awards, etc.)"
+                items={content.top_ticker}
+                onSave={async (items) => {
+                  const updated = await updateTickers(token, items, null);
+                  setContent(updated);
+                }}
+              />
+            )}
+
+            {content && (
+              <TickerEditor
+                title="Bottom Ticker -- Campus Updates"
+                description="Scrolls across the bottom of the kiosk screen (notices, placement drives, events, etc.)"
+                items={content.bottom_ticker}
+                onSave={async (items) => {
+                  const updated = await updateTickers(token, null, items);
+                  setContent(updated);
+                }}
+              />
+            )}
 
             <RagIndexCard token={token} />
-            
+
             <AdminUserCard token={token} />
           </>
+        ) : (
+          <EventSubmissionEditor token={token} />
         )}
       </main>
     </div>
   );
 }
 
-function LoginScreen({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
+function LoginScreen({ onLoggedIn }: { onLoggedIn: (session: AdminSession) => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -121,8 +154,8 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
     setLoading(true);
     setError("");
     try {
-      const token = await adminLogin(username, password);
-      onLoggedIn(token);
+      const session = await adminLogin(username, password);
+      onLoggedIn(session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
@@ -220,9 +253,10 @@ function AdminUserCard({ token }: { token: string }) {
 
   return (
     <div className="admin-card">
-      <h2 className="admin-card-title">Manage Admin Users</h2>
+      <h2 className="admin-card-title">Manage Event Admins</h2>
       <p className="admin-card-desc">
-        Create a new admin account to manage kiosk content.
+        Create an admin account. Event admins can only submit right-panel text slides,
+        which go live after you approve them.
       </p>
       <form onSubmit={handleAddUser} style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "1rem" }}>
         <input
